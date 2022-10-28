@@ -54,9 +54,9 @@ class NetworkManager {
         }.resume()
     }
     
-    private func decodeData<T: Codable>(_ type: T.Type, _ data: Data) -> T? {
+    private func decodeData<T: Decodable>(_ type: T.Type, _ data: Data) -> T? {
         let decoder = JSONDecoder()
-        
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
         do {
             let descriptionData = try decoder.decode(type, from: data)
             return descriptionData
