@@ -123,7 +123,7 @@ extension MainViewController {
                 DispatchQueue.main.async {
                     self.navigationController?.navigationBar.backgroundColor = .systemRed
                     self.title = "Not Connected"
-                    self.networkAlert("Предупреждение!", "Нет подключения к сети!", "Проверю")
+                    self.networkAlert("Warning!", "No internet connection!", "Got it!")
                 }
             }
         }
