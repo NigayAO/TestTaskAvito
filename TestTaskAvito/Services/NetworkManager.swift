@@ -54,6 +54,18 @@ class NetworkManager {
         }.resume()
     }
     
+    private func decodeData<T: Codable>(_ type: T.Type, _ data: Data) -> T? {
+        let decoder = JSONDecoder()
+        
+        do {
+            let descriptionData = try decoder.decode(type, from: data)
+            return descriptionData
+        } catch {
+            print("Description Error - ", error.localizedDescription)
+            return nil
+        }
+    }
+    
     private func saveDataToCache(with data: Data, and response: URLResponse) {
         guard let url = response.url else { return }
         
@@ -81,18 +93,6 @@ class NetworkManager {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 3600) {
             URLCache.shared.removeCachedResponse(for: request)
-        }
-    }
-    
-    private func decodeData<T: Codable>(_ type: T.Type, _ data: Data) -> T? {
-        let decoder = JSONDecoder()
-        
-        do {
-            let descriptionData = try decoder.decode(type, from: data)
-            return descriptionData
-        } catch {
-            print("Description Error - ", error.localizedDescription)
-            return nil
         }
     }
 }

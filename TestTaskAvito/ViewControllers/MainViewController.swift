@@ -39,11 +39,6 @@ class MainViewController: UIViewController {
         
         getData()
     }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        checkNetworkConnection()
-    }
 }
 
 //MARK: - UITableViewDelegate && UITableViewDataSource
@@ -119,7 +114,10 @@ extension MainViewController {
                 DispatchQueue.main.async {
                     self.navigationController?.navigationBar.backgroundColor = .systemGreen
                     self.title = "Connected"
-                    self.networkAlert("Всё хорошо!", "Есть подключение к сети!", "Отлично")
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.navigationController?.navigationBar.backgroundColor = .systemGray6
+                    self.title = "Avito"
                 }
             } else {
                 DispatchQueue.main.async {
