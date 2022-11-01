@@ -29,6 +29,11 @@ class MainViewController: UIViewController {
         return tableView
     }()
     
+    private let refreshControl: UIRefreshControl = {
+        let control = UIRefreshControl()
+        return control
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -75,11 +80,14 @@ extension MainViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         
         view.addSubview(tableView)
-        tableView.addSubview(activityIndicator)
-        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(EmployeeDetailCell.self, forCellReuseIdentifier: cellIdentifier)
+        
+        tableView.addSubview(activityIndicator)
+        
+        tableView.refreshControl = refreshControl
+        refreshControl.addTarget(self, action: #selector(pullRefreshing), for: .valueChanged)
     }
 
     private func setConstraints() {
@@ -94,15 +102,23 @@ extension MainViewController {
         ])
     }
     
+    @objc private func pullRefreshing(_ sender: UIRefreshControl) {
+        getData()
+        sender.endRefreshing()
+    }
+    
     private func getData() {
         NetworkManager.shared.fetchingData { result in
-            let sortListEmployees = result.company.employees.sorted { $0.name < $1.name }
-            self.employees = sortListEmployees
-            
-            self.tableView.reloadData()
-            self.activityIndicator.stopAnimating()
+            switch result {
+            case .success(let receivedData):
+                self.setValueAfterDownload(receivedData)
+                self.activityIndicator.stopAnimating()
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.networkAlert(error.localizedDescription)
+                }
+            }
         }
-        NetworkManager.shared.removeCache()
     }
     
     private func checkNetworkConnection() {
@@ -112,18 +128,15 @@ extension MainViewController {
         monitor.pathUpdateHandler = { path in
             if path.status == .satisfied {
                 DispatchQueue.main.async {
-                    self.navigationController?.navigationBar.backgroundColor = .systemGreen
-                    self.title = "Connected"
+                    self.setNotificationForConnection(.systemGreen, "Connected")
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.navigationController?.navigationBar.backgroundColor = .systemGray6
-                    self.title = "Avito"
+                    self.setNotificationForConnection(.systemGray6, "Avito")
                 }
             } else {
                 DispatchQueue.main.async {
-                    self.navigationController?.navigationBar.backgroundColor = .systemRed
-                    self.title = "Not Connected"
-                    self.networkAlert("Warning!", "No internet connection!", "Got it!")
+                    self.setNotificationForConnection(.systemRed, "Not Connected")
+                    self.networkAlert("Network connection was lost!")
                 }
             }
         }
@@ -132,16 +145,30 @@ extension MainViewController {
         monitor.start(queue: queue)
     }
     
-    private func networkAlert(_ title: String, _ message: String, _ buttonTitle: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let action = UIAlertAction(title: buttonTitle, style: .default) { _ in
-            DispatchQueue.main.async {
-                self.navigationController?.navigationBar.backgroundColor = .systemGray6
-                self.title = "Avito"
-            }
+    private func setNotificationForConnection(_ color: UIColor, _ withTitle: String) {
+        navigationController?.navigationBar.backgroundColor = color
+        title = withTitle
+    }
+    
+    private func networkAlert(_ message: String) {
+        let alert = UIAlertController(title: "Warning", message: message, preferredStyle: .alert)
+        let okAction = UIAlertAction(title: "OK", style: .cancel) { _ in
+            self.setNotificationForConnection(.systemGray6, "Avito")
+            self.activityIndicator.stopAnimating()
         }
-        alert.addAction(action)
+        let tryAction = UIAlertAction(title: "Try again?", style: .default) { _ in
+            self.getData()
+        }
+        alert.addAction(okAction)
+        alert.addAction(tryAction)
         present(alert, animated: true)
+    }
+    
+    private func setValueAfterDownload(_ data: Avito) {
+        let sortListEmployees = data.company.employees.sorted { $0.name < $1.name }
+        self.employees = sortListEmployees
+        
+        self.tableView.reloadData()
     }
 }
 

@@ -16,83 +16,59 @@ enum NetworkError: Error {
 class NetworkManager {
     static let shared = NetworkManager()
     
+    private let cacheManager = CacheManager.shared
+    
     private let baseURL = "https://run.mocky.io/v3/1d1cb4ec-73db-4762-8c4b-0b8aa3cecd4c"
+    
+    private let decoder = JSONDecoder()
         
     private init() {}
     
-    func fetchingData(completion: @escaping (Avito) -> Void) {
+    func fetchingData(completion: @escaping (Result<Avito, Error>) -> Void) {
+        let date = Date()
+        
         guard let url = URL(string: baseURL) else {
-            print(NetworkError.invalidURL)
+            completion(.failure(NetworkError.invalidURL))
             return
         }
         
-        if let validData = getDataFromCache(for: url) {
-            completion(validData)
-            return
+        cacheManager.countdownBeforeRemoveCache(date, url)
+        
+        if let validData = cacheManager.getDataFromCache(for: url) {
+            decodeData(validData, type: Avito.self, completion: completion)
         }
         
         getDataAndResponse(for: url, completion: completion)
     }
     
-    private func getDataAndResponse(for url: URL, completion: @escaping (Avito) -> Void) {
+    private func getDataAndResponse(for url: URL, completion: @escaping (Result<Avito, Error>) -> Void) {
         
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
-                print("Error with data - \(error.localizedDescription)")
-                return
+                completion(.failure(error))
             }
             
             guard let data = data, let response = response else {
-                print("Error with handling data - \(NetworkError.noData)")
+                completion(.failure(NetworkError.noData))
                 return
             }
-            self.saveDataToCache(with: data, and: response)
-            guard let decodingData = self.decodeData(Avito.self, data) else { return }
-            DispatchQueue.main.async {
-                completion(decodingData)
-            }
+            
+            self.cacheManager.saveDataToCache(with: data, and: response)
+            
+            self.decodeData(data, type: Avito.self, completion: completion)
+
         }.resume()
     }
     
-    private func decodeData<T: Decodable>(_ type: T.Type, _ data: Data) -> T? {
-        let decoder = JSONDecoder()
+    private func decodeData<T: Decodable>(_ data: Data, type: T.Type, completion: @escaping (Result<T, Error>) -> Void) {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         do {
             let descriptionData = try decoder.decode(type, from: data)
-            return descriptionData
+            DispatchQueue.main.async {
+                completion(.success(descriptionData))
+            }
         } catch {
-            print("Description Error - ", error.localizedDescription)
-            return nil
-        }
-    }
-    
-    private func saveDataToCache(with data: Data, and response: URLResponse) {
-        guard let url = response.url else { return }
-        
-        let request = URLRequest(url: url)
-        let cachedResponse = CachedURLResponse(response: response, data: data)
-        
-        URLCache.shared.storeCachedResponse(cachedResponse, for: request)
-    }
-    
-    private func getDataFromCache(for url: URL) -> Avito? {
-        let request = URLRequest(url: url)
-        
-        guard
-            let cacheResponse = URLCache.shared.cachedResponse(for: request),
-            let decodingData = decodeData(Avito.self, cacheResponse.data)
-        else  {
-            return nil
-        }
-        return decodingData
-    }
-    
-    func removeCache() {
-        guard let url = URL(string: baseURL) else { return }
-        let request = URLRequest(url: url)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3600) {
-            URLCache.shared.removeCachedResponse(for: request)
+            completion(.failure(NetworkError.decodingError))
         }
     }
 }
