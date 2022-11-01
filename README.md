@@ -17,6 +17,7 @@ This is my way to make task from avito, hope you'll enjoy!
 - Add caching for response on 1 hour (I don't know why, 
 but it work correctly only in a physical device, i test at my personal iPad);
 - Add checking network connection;
+- Add "Pull to refresh";
 
 1) The first and only screen is the UITableView where i parsing JSON object
 
