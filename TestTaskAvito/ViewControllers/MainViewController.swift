@@ -25,12 +25,14 @@ class MainViewController: UIViewController {
     
     private let tableView: UITableView = {
         let tableView = UITableView(frame: .zero, style: .grouped)
+        tableView.allowsSelection = false
         tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
     
     private let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
+        control.tintColor = .black
         return control
     }()
     
@@ -152,13 +154,22 @@ extension MainViewController {
     
     private func networkAlert(_ message: String) {
         let alert = UIAlertController(title: "Warning", message: message, preferredStyle: .alert)
+        
         let okAction = UIAlertAction(title: "OK", style: .cancel) { _ in
             self.setNotificationForConnection(.systemGray6, "Avito")
             self.activityIndicator.stopAnimating()
         }
+        
         let tryAction = UIAlertAction(title: "Try again?", style: .default) { _ in
-            self.getData()
+            self.activityIndicator.color = .black
+            self.activityIndicator.startAnimating()
+            self.enableTableView(false, for: 0.5)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                self.getData()
+                self.enableTableView(true, for: 1)
+            }
         }
+        
         alert.addAction(okAction)
         alert.addAction(tryAction)
         present(alert, animated: true)
@@ -169,6 +180,11 @@ extension MainViewController {
         self.employees = sortListEmployees
         
         self.tableView.reloadData()
+    }
+    
+    private func enableTableView(_ isOn: Bool, for alpha: Double) {
+        self.tableView.isScrollEnabled = isOn
+        self.tableView.alpha = alpha
     }
 }
 
