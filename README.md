@@ -1,18 +1,17 @@
-# TestTaskAvito
-
-Требование к реализации:
-
-Приложение работает на iOS 13 и выше
-Реализована поддержка iPhone и iPad
-Список отсортирован по алфавиту
-Кэширование ответа на 1 час
-Обработаны случаи потери сети / отсутствия соединения
+# AvitoTestTask
 
 Hello over there!
 
 This is my way to make task from avito, hope you'll enjoy!
 
-What i've done in this project:
+# Требование к реализации:
+- Приложение работает на iOS 13 и выше;
+- Реализована поддержка iPhone и iPad;
+- Список отсортирован по алфавиту;
+- Кэширование ответа на 1 час;
+- Обработаны случаи потери сети / отсутствия соединения.
+
+# What i've done in this project:
 - Supporting iPhone and iPad on iOS13+;
 - Make sorting for given array of employees;
 - Add caching for response on 1 hour (I don't know why, 
